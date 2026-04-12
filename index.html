@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>もつ焼きメニュールーレット Ver.2.0</title>
+    <style>
+        :root { --primary-red: #d32f2f; --bg-color: #f4ece2; --paper-color: #fffaf0; --gold: #d4af37; }
+        body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif; background-color: var(--bg-color); color: #333; text-align: center; padding: 20px; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 3px double #8b4513; }
+        h1 { color: var(--primary-red); font-size: 1.4rem; border-bottom: 2px solid var(--primary-red); padding-bottom: 10px; margin-bottom: 20px; }
+        .controls { margin-bottom: 20px; background: #eee; padding: 15px; border-radius: 8px; text-align: left; }
+        .control-group { margin-bottom: 10px; }
+        select, label { font-size: 0.9rem; font-weight: bold; }
+        button { background-color: var(--primary-red); color: white; border: none; padding: 15px 40px; font-size: 1.2rem; font-weight: bold; border-radius: 5px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px #b71c1c; width: 100%; }
+        button:active { box-shadow: 0 0 transparent; transform: translateY(4px); }
+        .result-area { min-height: 300px; margin: 20px 0; padding: 10px; background: var(--paper-color); border: 1px solid #ddd; text-align: left; }
+        .menu-item { margin-bottom: 12px; padding: 12px; border-left: 6px solid var(--primary-red); background: #fff; box-shadow: 2px 2px 5px rgba(0,0,0,0.05); }
+        .category-tag { font-size: 0.75rem; color: #fff; background: #8b4513; padding: 2px 6px; border-radius: 3px; margin-right: 8px; vertical-align: middle; }
+        .item-name { font-size: 1.1rem; font-weight: bold; display: block; margin-top: 5px; }
+        .caution { font-size: 0.8rem; color: #d32f2f; background: #fff0f0; padding: 4px; margin-top: 8px; border-radius: 3px; border: 1px dashed #d32f2f; }
+        .mode-king { border-color: var(--gold); background-color: #fff9e6; }
+        .mode-king .category-tag { background-color: var(--gold); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🏮 もつ焼きルーレット 🏮</h1>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label>注文数：</label>
+            <select id="itemCount">
+                <option value="3">3皿</option>
+                <option value="4">4皿</option>
+                <option value="5" selected>5皿</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <input type="checkbox" id="rareCheck" checked>
+            <label for="rareCheck">三種の神器(シンキ/ツル/ホネ)を含める</label>
+        </div>
+        <div class="control-group">
+            <input type="checkbox" id="kingMode" onchange="toggleKingMode()">
+            <label for="kingMode" style="color:var(--primary-red);">閉店前「四天王モード」</label>
+        </div>
+    </div>
+
+    <button id="spinBtn" onclick="spin()">ルーレットを回す！</button>
+
+    <div class="result-area" id="result">
+        <p style="text-align:center; padding-top:100px; color:#999;">煮込みが残っていることを祈りましょう</p>
+    </div>
+</div>
+
+<script>
+const flavors = ["塩", "カラ塩", "タレ", "カラ塩味噌", "ミソ", "素焼き", "素焼きオス"];
+const grillStatus = ["普通", "良く焼き", "若焼き"];
+const oshinkoOptions = ["デフォルト", "オス", "ショウガ", "ショウガオス", "オスダケ", "オスダケショウガ", "カケナイデ", "カケナイデショウガ"];
+
+const yakimonoAll = ["シロ", "レバ", "ガツ", "ナンコツ", "アブラ", "ハツ", "カシラ"];
+const kingParts = ["シロ", "レバ", "ガツ", "アブラ"]; // 四天王
+
+function getRandom(array) {
+    return array[Math.floor(Math.random() * array.length)];
+}
+
+function toggleKingMode() {
+    const isKing = document.getElementById('kingMode').checked;
+    const rareCheck = document.getElementById('rareCheck');
+    if (isKing) {
+        rareCheck.checked = false;
+        rareCheck.disabled = true;
+    } else {
+        rareCheck.disabled = false;
+    }
+}
+
+function spin() {
+    const count = parseInt(document.getElementById('itemCount').value);
+    const useRare = document.getElementById('rareCheck').checked;
+    const isKingMode = document.getElementById('kingMode').checked;
+    const resultDiv = document.getElementById('result');
+    resultDiv.innerHTML = '';
+
+    let items = [];
+
+    // 1. お新香/ダイコン (1皿)
+    const sideType = isKingMode ? "ダイコン" : (Math.random() > 0.5 ? "オシンコ" : "ダイコン");
+    items.push({
+        cat: "お新香",
+        name: `${sideType} ${getRandom(oshinkoOptions)}`,
+        note: isKingMode ? "※四天王モード（ダイコンのみ）" : ""
+    });
+
+    // 2. 煮込み (1皿)
+    const nikomiOptions = isKingMode ? ["煮込み"] : ["煮込み", "煮込み シロイトコ", "煮込み アブラノトコ", "煮込み クロイトコ", "煮込み クロイノイガイ"];
+    if (!isKingMode && useRare) nikomiOptions.push("ホネ(希少)");
+    
+    items.push({
+        cat: "煮込み",
+        name: getRandom(nikomiOptions),
+        note: ""
+    });
+
+    // 3. メイン抽出
+    const partsPool = isKingMode ? kingParts : yakimonoAll;
+    
+    while (items.length < count) {
+        let pool = ["yakimono", "nama"];
+        if (!isKingMode && useRare) pool.push("shinki", "tsuru");
+        
+        const type = getRandom(pool);
+        let res = null;
+
+        if (type === "yakimono") {
+            const part = getRandom(partsPool);
+            const flavor = getRandom(flavors);
+            const grill = (part === "レバ") ? "良く焼きのみ" : getRandom(grillStatus);
+            res = {
+                cat: "焼き物",
+                name: `${part} ${flavor} ${grill} <span style="font-size:0.8rem; font-weight:normal;">(2本)</span>`,
+                note: part === "カシラ" ? "※一人一皿のみ" : ""
+            };
+        } 
+        else if (type === "nama") {
+            const part = getRandom(partsPool);
+            const style = (part === "レバ") ? getRandom(["ボイル", "ボイルオス", "ボイルアマイノ", "ボイル塩"]) : getRandom(["ナマ", "ナマオス", "ナマアマイノ", "ナマ塩"]);
+            res = {
+                cat: "生（ナマ）",
+                name: `${part}${style} と 好きな部位1本 <span style="font-size:0.8rem; font-weight:normal;">(計2本)</span>`,
+                note: "※1本ずつの組み合わせ可能"
+            };
+        }
+        else if (type === "shinki" && useRare) {
+            const shinkiStyle = getRandom(["シンキ", "シンキオス", "シンキ塩", "シンキカタイノ"]);
+            res = { cat: "三種の神器", name: `シンキ (${shinkiStyle})`, note: "※テッポウとコブクロ（在庫次第で変更可）" };
+        }
+        else if (type === "tsuru" && useRare) {
+            res = { cat: "三種の神器", name: `ツル ${getRandom(["シオ", "タレ", "味噌", "素焼き", "素焼きオス"])}`, note: "※焼き加減なし" };
+        }
+
+        if (res && !items.some(i => i.name === res.name)) items.push(res);
+    }
+
+    items.forEach(item => {
+        const div = document.createElement('div');
+        div.className = `menu-item ${isKingMode ? 'mode-king' : ''}`;
+        div.innerHTML = `<span class="category-tag">${item.cat}</span><span class="item-name">${item.name}</span>${item.note ? `<div class="caution">${item.note}</div>` : ''}`;
+        resultDiv.appendChild(div);
+    });
+}
+</script>
+
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>もつ焼きメニュールーレット Ver.8.0</title>
+    <title>もつ焼きメニュールーレット Ver.9.0</title>
     <style>
         :root { --primary-red: #d32f2f; --bg-color: #f4ece2; --paper-color: #fffaf0; --gold: #d4af37; --dark-brown: #5d4037; }
         body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif; background-color: var(--bg-color); color: #333; text-align: center; padding: 10px; padding-bottom: 50px; }
@@ -33,24 +33,24 @@
 <body>
 
 <div class="container">
-    <h1>🏮 もつ焼きルーレット Ver.8.0 🏮</h1>
+    <h1>🏮 もつ焼きルーレット Ver.9.0 🏮</h1>
     
     <div class="controls">
-        <div class="control-group"><label>注文数：</label><select id="itemCount"><option value="3">3皿</option><option value="4">4皿</option><option value="5" selected>5皿</option></select></div>
+        <div class="control-group"><label>注文皿数：</label><select id="itemCount"><option value="3">3皿</option><option value="4">4皿</option><option value="5" selected>5皿</option><option value="6">6皿</option></select></div>
         <div class="control-group"><label for="rareCheck">希少部位（ホネ・ツル・シンキ・カシラ）</label><input type="checkbox" id="rareCheck" checked></div>
         <div class="control-group" style="background:#fdd; padding:5px; border-radius:4px;"><label for="kingMode" style="color:var(--primary-red);">閉店前「四天王モード」</label><input type="checkbox" id="kingMode" onchange="toggleKingMode()"></div>
     </div>
 
     <div class="preference-panel" id="prefPanel">
         <h3>✨ こだわり設定</h3>
-        <div class="pref-group"><span class="pref-title">焼き物・生（ナマ）</span><div class="parts-tags" id="partsTags"></div></div>
-        <div class="pref-group"><span class="pref-title">サイド</span><div class="parts-tags" id="sideTags"></div></div>
-        <div class="pref-group"><span class="pref-title">希少部位</span><div class="parts-tags" id="rareTags"></div></div>
+        <div class="pref-group"><span class="pref-title">焼き・生（基本2本1皿）</span><div class="parts-tags" id="partsTags"></div></div>
+        <div class="pref-group"><span class="pref-title">サイド・タン（1皿単位）</span><div class="parts-tags" id="sideTags"></div></div>
+        <div class="pref-group"><span class="pref-title">希少部位（各1皿限定）</span><div class="parts-tags" id="rareTags"></div></div>
         <button style="font-size:0.7rem;" onclick="resetPreferences()">リセット</button>
     </div>
 
     <button class="spin-btn" onclick="spin()">ルーレットを回す！</button>
-    <div class="result-area" id="result"><p style="text-align:center; padding-top:80px; color:#999;">生一本ずつの組み合わせに対応しました</p></div>
+    <div class="result-area" id="result"><p style="text-align:center; padding-top:80px; color:#999;">ツル・カシラは1皿限定、タンは独立した1皿です</p></div>
 </div>
 
 <script>
@@ -108,25 +108,33 @@ function spin() {
     let curPref = isKing ? {} : preferences;
     const neverList = new Set(Object.keys(curPref).filter(k => curPref[k] === 2));
 
-    // Must枠
+    // Must枠 (最大皿数-1まで)
     const mustList = Object.keys(curPref).filter(k => curPref[k] === 1);
     mustList.sort(() => Math.random() - 0.5).slice(0, count - 1).forEach(name => {
         let itm = createItem(name, true, isKing, usedRare, neverList);
-        if (itm) items.push(itm);
+        if (itm) {
+            items.push(itm);
+            if (itm.note.includes("2皿分")) items.push({cat:"",name:"",note:"skip",isM:false}); // 2皿分カウント
+        }
     });
 
-    // サイド枠
-    if (!items.some(i => i.cat === "お新香") && !neverList.has("オシンコ") && !neverList.has("ダイコン")) {
+    // お新香枠
+    if (!items.some(i => i.cat === "お新香") && !neverList.has("オシンコ") && !neverList.has("ダイコン") && items.filter(i=>i.note!=="skip").length < count) {
         let type = isKing ? "ダイコン" : (curPref["ダイコン"] === 1 ? "ダイコン" : (curPref["オシンコ"] === 1 ? "オシンコ" : (Math.random() > 0.5 ? "オシンコ" : "ダイコン")));
-        items.push(createItem(type, false, isKing, usedRare, neverList));
+        let itm = createItem(type, false, isKing, usedRare, neverList);
+        items.push(itm);
+        if (itm.note.includes("2皿分")) items.push({cat:"",name:"",note:"skip",isM:false});
     }
-    if (!items.some(i => i.cat === "煮込み") && !neverList.has("煮込み")) {
-        items.push(createItem("煮込み", false, isKing, usedRare, neverList));
+    // 煮込み枠
+    if (!items.some(i => i.cat === "煮込み") && !neverList.has("煮込み") && items.filter(i=>i.note!=="skip").length < count) {
+        let itm = createItem("煮込み", false, isKing, usedRare, neverList);
+        items.push(itm);
+        if (itm.note.includes("2皿分")) items.push({cat:"",name:"",note:"skip",isM:false});
     }
 
     // 補充
     const poolParts = (isKing ? kingParts : allParts).filter(p => !neverList.has(p));
-    while (items.length < count) {
+    while (items.filter(i=>i.note!=="skip").length < count) {
         let types = poolParts.length > 0 ? ["yakimono", "nama"] : [];
         if (!isKing && useRare) {
             rareParts.forEach(r => { if(!usedRare.has(r) && !neverList.has(r)) types.push(r.toLowerCase()); });
@@ -141,26 +149,29 @@ function spin() {
         else if (t === "tannama") itm = createTanNama(Math.random() > 0.8, false);
         else itm = createItem(t.toUpperCase(), false, isKing, usedRare, neverList);
         
-        if (itm && !items.some(i => i.name === itm.name)) items.push(itm);
-        if (items.length > 12) break;
+        if (itm && !items.some(i => i.name === itm.name)) {
+            items.push(itm);
+            if (itm.note.includes("2皿分")) items.push({cat:"",name:"",note:"skip",isM:false});
+        }
+        if (items.length > 15) break;
     }
-    renderResults(items, isKing, resDiv);
+    renderResults(items.filter(i=>i.note!=="skip"), isKing, resDiv);
 }
 
 function createItem(name, isM, isK, usedR, never) {
     if (name === "オシンコ" || name === "ダイコン") {
         const big = Math.random() > 0.8;
-        return { cat: "お新香", name: `${name} ${getRandom(oshinkoOptions)} ${big ? '<span class="big-item">「大きいの」</span>' : ''}`, note: big ? "2皿分" : "", isM };
+        return { cat: "お新香", name: `${name} ${getRandom(oshinkoOptions)} ${big ? '<span class="big-item">「大きいの」</span>' : ''}`, note: big ? "2皿分カウント" : "", isM };
     }
     if (name === "煮込み" || name === "ホネ") {
         if (name === "ホネ") usedR.add("ホネ");
         const big = (name !== "ホネ" && Math.random() > 0.8);
         let n = isK ? "煮込み" : (name === "ホネ" ? "ホネ" : getRandom(["煮込み", "煮込み シロイトコ", "煮込み アブラノトコ", "煮込み クロイトコ"]));
-        return { cat: name === "ホネ" ? "希少部位" : "煮込み", name: `${n} ${big ? '<span class="big-item">「大きいの」</span>' : ''}`, note: big ? "2皿分" : (name === "ホネ" ? "一回限定" : ""), isM };
+        return { cat: name === "ホネ" ? "希少部位" : "煮込み", name: `${n} ${big ? '<span class="big-item">「大きいの」</span>' : ''}`, note: big ? "2皿分カウント" : (name === "ホネ" ? "一皿限定" : ""), isM };
     }
     if (name === "タンナマ") return createTanNama(Math.random() > 0.8, isM);
-    if (name === "シンキ") { usedR.add("シンキ"); return { cat: "希少部位", name: `シンキ (${getRandom(["シンキ", "シンキオス", "シンキ塩", "シンキカタイノ"])})`, note: "テッポウとコブクロ（一回限定）", isM }; }
-    if (name === "ツル") { usedR.add("ツル"); return { cat: "希少部位", name: `ツル ${getRandom(["シオ", "タレ", "味噌", "素焼き", "素焼きオス"])}`, note: "一回限定", isM }; }
+    if (name === "シンキ") { usedR.add("シンキ"); return { cat: "希少部位", name: `シンキ (${getRandom(["シンキ", "シンキオス", "シンキ塩", "シンキカタイノ"])})`, note: "テッポウとコブクロ（一皿限定）", isM }; }
+    if (name === "ツル") { usedR.add("ツル"); return { cat: "希少部位", name: `ツル ${getRandom(["シオ", "タレ", "味噌", "素焼き", "素焼きオス"])}`, note: "一皿限定", isM }; }
     if (name === "カシラ") return createYakimono("カシラ", usedR, isM);
     if (allParts.includes(name)) return Math.random() > 0.5 ? createYakimono(name, usedR, isM) : createNamaCombo((isK ? kingParts : allParts), isK, isM);
     return null;
@@ -170,31 +181,21 @@ function createYakimono(p, usedR, isM = false) {
     if (p === "カシラ") usedR.add("カシラ");
     const f = getRandom(flavors);
     const g = (p === "レバ") ? "良く焼きのみ" : getRandom(grillStatus);
-    return { cat: "焼き物", name: `${p} ${f} ${g} (2本)`, note: p === "カシラ" ? "一回限定" : "", isM };
+    return { cat: "焼き物", name: `${p} ${f} ${g} (2本1皿)`, note: p === "カシラ" ? "一皿限定" : "", isM };
 }
 
 function createNamaCombo(pool, isK, isM = false) {
-    // 部位1を選択
     const p1 = getRandom(pool);
-    // 部位2を選択（部位1とは重複させない）
     let remainingPool = pool.filter(p => p !== p1);
     const p2 = remainingPool.length > 0 ? getRandom(remainingPool) : p1;
-    
-    // 味付けの決定
     const baseStyle = (p1 === "レバ" || p2 === "レバ") ? getRandom(["ボイル", "ボイルオス", "ボイルアマイノ", "ボイル塩"]) : getRandom(["ナマ", "ナマオス", "ナマアマイノ", "ナマ塩"]);
-    
-    // 表示用の味付け符牒（ナマ、ボイルを取り除く）
     const adj = baseStyle.replace('ナマ', '').replace('ボイル', '') || '';
-
-    // 表記作成
     const n1 = p1 === "レバ" ? "レバボイル" : p1 + "ナマ";
     const n2 = p2 === "レバ" ? "レバボイル" : p2 + "ナマ";
-    
-    // 「ハツナマとかナンコツナマシオ」形式
     return { 
         cat: "生（ナマ）", 
-        name: `<span style="color:#d32f2f">${n1}${adj}</span> と <span style="color:#d32f2f">${n2}${adj}</span> (計2本)`, 
-        note: `※2本とも同じ味付けで注文`, 
+        name: `<span style="color:#d32f2f">${n1}${adj}</span> と <span style="color:#d32f2f">${n2}${adj}</span> (2本1皿)`, 
+        note: `2本同じ味付けで注文`, 
         isM 
     };
 }
@@ -203,8 +204,8 @@ function createTanNama(big, isM) {
     const t = getRandom(["タンナマ", "タンナマオス", "タンナマ塩", "タンナマ赤いとこ", "タンナマ赤いとこ塩", "タンナマ赤いとこオス"]);
     return { 
         cat: "生（ナマ）", 
-        name: `${t} ${big ? '<span class="big-item">「大きいの」</span>' : ''}`, 
-        note: big ? "2皿分相当" : "単独で1皿(2本)扱い", 
+        name: `${t} ${big ? '<span class="big-item">「大きいの」</span>' : '(1皿)'}`, 
+        note: big ? "2皿分カウント" : "タンのみ独立した一皿です", 
         isM 
     };
 }

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>もつ焼きメニュールーレット Ver.13.0</title>
+    <title>もつ焼きメニュールーレット Ver.14.0</title>
     <style>
         :root { --primary-red: #d32f2f; --bg-color: #f4ece2; --paper-color: #fffaf0; --gold: #d4af37; --dark-brown: #5d4037; }
         body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif; background-color: var(--bg-color); color: #333; text-align: center; padding: 10px; padding-bottom: 50px; }
@@ -34,12 +34,12 @@
 <body>
 
 <div class="container">
-    <h1>🏮 もつ焼きルーレット Ver.13.0 🏮</h1>
+    <h1>🏮 もつ焼きルーレット Ver.14.0 🏮</h1>
     
     <div class="controls">
         <div class="control-group"><label>注文皿数：</label><select id="itemCount"><option value="3">3皿</option><option value="4">4皿</option><option value="5" selected>5皿</option><option value="6">6皿</option></select></div>
         <div class="control-group"><label for="rareCheck">希少部位（ホネ・ツル・シンキ・カシラ）</label><input type="checkbox" id="rareCheck" checked></div>
-        <div class="control-group" style="background:#fdd; padding:5px; border-radius:4px;"><label for="kingMode" style="color:var(--primary-red);">閉店前「四天王モード」</label><input type="checkbox" id="kingMode" onchange="toggleKingMode()"></div>
+        <div class="control-group" style="background:#fff3e0; padding:5px; border-radius:4px;"><label for="kingMode" style="color:var(--dark-brown); font-weight:bold;">夕方以降「四天王モード」</label><input type="checkbox" id="kingMode" onchange="toggleKingMode()"></div>
     </div>
 
     <div class="preference-panel" id="prefPanel">
@@ -51,12 +51,11 @@
     </div>
 
     <button class="spin-btn" onclick="spin()">ルーレットを回す！</button>
-    <div class="result-area" id="result"><p style="text-align:center; padding-top:80px; color:#999;">「普通」も表記せず、最短のコールを生成します</p></div>
+    <div class="result-area" id="result"><p style="text-align:center; padding-top:80px; color:#999;">夕方以降は主力メニュー（四天王）が中心になります</p></div>
 </div>
 
 <script>
 const flavors = ["塩", "カラ塩", "タレ", "カラ塩味噌", "ミソ", "素焼き", "素焼きオス"];
-// 「普通」を空文字にして表記を消す
 const grillStatus = ["", "良く焼き", "若焼き"];
 const oshinkoOptions = ["", "オス", "ショウガ", "ショウガオス", "オスダケ", "オスダケショウガ", "カケナイデ", "カケナイデショウガ"];
 
@@ -180,9 +179,8 @@ function createItem(name, isM, isK, usedR, never) {
 function createYakimono(p, usedR, isM = false) {
     if (p === "カシラ") usedR.add("カシラ");
     const f = getRandom(flavors);
-    let gStr = getRandom(grillStatus); // grillStatusの「""」が「普通」に相当
+    let gStr = getRandom(grillStatus);
     let note = p === "カシラ" ? "一皿限定" : "";
-    
     if (p === "レバ") { gStr = ""; note = (note ? note + " / " : "") + "良く焼きのみ"; }
 
     return { 
@@ -197,19 +195,12 @@ function createNamaCombo(pool, isK, isM = false) {
     const p1 = getRandom(pool);
     let remainingPool = pool.filter(p => p !== p1);
     const p2 = remainingPool.length > 0 ? getRandom(remainingPool) : p1;
-    
     const rawStyle = (p1 === "レバ" || p2 === "レバ") ? getRandom(["ボイル", "ボイルオス", "ボイルアマイノ", "ボイル塩"]) : getRandom(["ナマ", "ナマオス", "ナマアマイノ", "ナマ塩"]);
     const adj = rawStyle.replace('ナマ', '').replace('ボイル', '') || '';
-
     const s1 = p1 === "レバ" ? "レバボイル" : p1;
     const s2 = p2 === "レバ" ? "レバボイル" : p2;
     
-    let displayName = "";
-    if (p1 === p2) {
-        displayName = `<span class="call-text">${s1}${p1 === "レバ" ? "" : "ナマ"}${adj}</span>`;
-    } else {
-        displayName = `<span class="call-text">${s1} と ${s2} 一本ずつ${adj ? ' ' + adj : ''}</span>`;
-    }
+    let displayName = (p1 === p2) ? `<span class="call-text">${s1}${p1 === "レバ" ? "" : "ナマ"}${adj}</span>` : `<span class="call-text">${s1} と ${s2} 一本ずつ${adj ? ' ' + adj : ''}</span>`;
 
     return { 
         cat: "生（ナマ）", 

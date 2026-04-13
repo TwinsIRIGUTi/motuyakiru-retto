@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>もつ焼きメニュールーレット Ver.11.0</title>
+    <title>もつ焼きメニュールーレット Ver.13.0</title>
     <style>
         :root { --primary-red: #d32f2f; --bg-color: #f4ece2; --paper-color: #fffaf0; --gold: #d4af37; --dark-brown: #5d4037; }
         body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif; background-color: var(--bg-color); color: #333; text-align: center; padding: 10px; padding-bottom: 50px; }
@@ -34,7 +34,7 @@
 <body>
 
 <div class="container">
-    <h1>🏮 もつ焼きルーレット Ver.11.0 🏮</h1>
+    <h1>🏮 もつ焼きルーレット Ver.13.0 🏮</h1>
     
     <div class="controls">
         <div class="control-group"><label>注文皿数：</label><select id="itemCount"><option value="3">3皿</option><option value="4">4皿</option><option value="5" selected>5皿</option><option value="6">6皿</option></select></div>
@@ -51,13 +51,14 @@
     </div>
 
     <button class="spin-btn" onclick="spin()">ルーレットを回す！</button>
-    <div class="result-area" id="result"><p style="text-align:center; padding-top:80px; color:#999;">生一本ずつの注文コールを再現しました</p></div>
+    <div class="result-area" id="result"><p style="text-align:center; padding-top:80px; color:#999;">「普通」も表記せず、最短のコールを生成します</p></div>
 </div>
 
 <script>
 const flavors = ["塩", "カラ塩", "タレ", "カラ塩味噌", "ミソ", "素焼き", "素焼きオス"];
-const grillStatus = ["普通", "良く焼き", "若焼き"];
-const oshinkoOptions = ["デフォルト", "オス", "ショウガ", "ショウガオス", "オスダケ", "オスダケショウガ", "カケナイデ", "カケナイデショウガ"];
+// 「普通」を空文字にして表記を消す
+const grillStatus = ["", "良く焼き", "若焼き"];
+const oshinkoOptions = ["", "オス", "ショウガ", "ショウガオス", "オスダケ", "オスダケショウガ", "カケナイデ", "カケナイデショウガ"];
 
 const allParts = ["シロ", "レバ", "ガツ", "ナンコツ", "アブラ", "ハツ"];
 const sideItems = ["煮込み", "オシンコ", "ダイコン", "タンナマ"];
@@ -159,7 +160,8 @@ function spin() {
 function createItem(name, isM, isK, usedR, never) {
     if (name === "オシンコ" || name === "ダイコン") {
         const big = Math.random() > 0.95;
-        return { cat: "お新香", name: `<span class="call-text">${name} ${getRandom(oshinkoOptions)}</span> ${big ? '<span class="big-item">「大きいの」</span>' : ''}`, note: big ? "2皿分カウント" : "", isM };
+        const opt = getRandom(oshinkoOptions);
+        return { cat: "お新香", name: `<span class="call-text">${name}${opt ? ' ' + opt : ''}</span> ${big ? '<span class="big-item">「大きいの」</span>' : ''}`, note: big ? "2皿分カウント" : "", isM };
     }
     if (name === "煮込み" || name === "ホネ") {
         if (name === "ホネ") usedR.add("ホネ");
@@ -178,13 +180,14 @@ function createItem(name, isM, isK, usedR, never) {
 function createYakimono(p, usedR, isM = false) {
     if (p === "カシラ") usedR.add("カシラ");
     const f = getRandom(flavors);
-    let g = getRandom(grillStatus);
+    let gStr = getRandom(grillStatus); // grillStatusの「""」が「普通」に相当
     let note = p === "カシラ" ? "一皿限定" : "";
-    if (p === "レバ") { g = ""; note = (note ? note + " / " : "") + "良く焼きのみ"; }
+    
+    if (p === "レバ") { gStr = ""; note = (note ? note + " / " : "") + "良く焼きのみ"; }
 
     return { 
         cat: "焼き物", 
-        name: `<span class="call-text">${p} ${f} ${g}</span> (2本1皿)`.trim(), 
+        name: `<span class="call-text">${p} ${f}${gStr ? ' ' + gStr : ''}</span> (2本1皿)`.trim(), 
         note: note, 
         isM 
     };
@@ -195,21 +198,17 @@ function createNamaCombo(pool, isK, isM = false) {
     let remainingPool = pool.filter(p => p !== p1);
     const p2 = remainingPool.length > 0 ? getRandom(remainingPool) : p1;
     
-    // 生の味付け決定
     const rawStyle = (p1 === "レバ" || p2 === "レバ") ? getRandom(["ボイル", "ボイルオス", "ボイルアマイノ", "ボイル塩"]) : getRandom(["ナマ", "ナマオス", "ナマアマイノ", "ナマ塩"]);
     const adj = rawStyle.replace('ナマ', '').replace('ボイル', '') || '';
 
-    // 表記作成
     const s1 = p1 === "レバ" ? "レバボイル" : p1;
     const s2 = p2 === "レバ" ? "レバボイル" : p2;
     
     let displayName = "";
     if (p1 === p2) {
-        // 万が一重複した場合は一種類表記
-        displayName = `<span class="call-text">${s1}ナマ${adj}</span>`;
+        displayName = `<span class="call-text">${s1}${p1 === "レバ" ? "" : "ナマ"}${adj}</span>`;
     } else {
-        // 「ハツ と ガツ 一本ずつ オス」形式
-        displayName = `<span class="call-text">${s1} と ${s2} 一本ずつ ${adj}</span>`;
+        displayName = `<span class="call-text">${s1} と ${s2} 一本ずつ${adj ? ' ' + adj : ''}</span>`;
     }
 
     return { 
